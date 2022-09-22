@@ -19,22 +19,14 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Size(min = 5, max = 12)
     private String isbn;
 
-    @NotBlank
-    @Size(min = 1, max = 255)
     private String title;
 
-    @Size(max = 255)
     private String description;
 
-    @NotBlank
-    @Size(min = 2, max = 30)
     private String authorName;
 
-    @Size(max = 255)
     private String authorBio;
 
     @Builder

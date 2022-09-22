@@ -2,7 +2,10 @@ package com.ddoong2.unittestiseasy.controller;
 
 import com.ddoong2.unittestiseasy.domain.Book;
 import com.ddoong2.unittestiseasy.repository.BookRepository;
+import com.ddoong2.unittestiseasy.util.FixtureMonkeyUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.navercorp.fixturemonkey.FixtureMonkey;
+import com.navercorp.fixturemonkey.generator.BuilderArbitraryGenerator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +18,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.List;
 
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -54,6 +58,29 @@ class BookControllerTest {
     }
 
     @Test
+    @DisplayName("fm을 사용해서 책을 저장")
+    void fm을_사용해서_책을_저장() throws Exception {
+
+        // Given - 사전 조건 설정
+        final FixtureMonkey fixture = FixtureMonkeyUtil.fixture();
+        final BookRequest bookRequest = fixture.giveMeBuilder(BookRequest.class)
+                .sample();
+        final Book book = fixture.giveMeBuilder(Book.class)
+                .set("title", bookRequest.getTitle())
+                .set("isbn", bookRequest.getIsbn())
+                .sample();
+        given(bookRepository.save(isA(Book.class))).willReturn(book);
+        // When - 검증하려는 로직 실행
+        final ResultActions result =
+                this.mockMvc.perform(post("/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bookRequest))
+                );
+        // Then - 출력 확인
+        result.andExpect(status().is2xxSuccessful());
+    }
+
+    @Test
     @DisplayName("모든 책을 가져온다")
     void 모든_책을_가져온다() throws Exception {
         // Given - 사전 조건 설정
@@ -69,5 +96,20 @@ class BookControllerTest {
         // Then - 출력 확인
         result.andExpect(status().isOk())
                 .andExpect(jsonPath("$.[0].title").value("토비의 스프링 3.1 Vol. 1 스프링의 이해와 원리"));
+    }
+
+    @Test
+    @DisplayName("fm으로 모든책을 가져온다")
+    void fm으로_모든책을_가져온다() throws Exception {
+
+        // Given - 사전 조건 설정
+        final FixtureMonkey fixture = FixtureMonkeyUtil.fixture();
+        final List<Book> books = fixture.giveMe(Book.class, 10);
+        given(bookRepository.findAll()).willReturn(books);
+        // When - 검증하려는 로직 실행
+        final ResultActions result = this.mockMvc.perform(get("/books"));
+        // Then - 출력 확인
+        result.andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(10)));
     }
 }
